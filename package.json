@@ -1,0 +1,10 @@
+{
+  "name": "hw4",
+  "scripts": {
+    "serve": "./node_modules/serve/bin/serve.js"
+  },
+  "author": "Fred Choi",
+  "dependencies": {
+    "serve": "^11.3.0"
+  }
+}
