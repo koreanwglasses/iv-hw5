@@ -45,13 +45,19 @@ const brightTheme = {
     strokeOnly: false
 };
 
+const concordTheme = {
+    colorSchemeIndex: 7,
+    colorSchemeType: "a",
+    strokeOnly: false,
+}
+
 //////////////////////////////////////////
 ////  Drawing parameters and Globals  ////
 //////////////////////////////////////////
 
 // Choi
 const minRadius = 10;
-const { colorSchemeIndex, colorSchemeType, strokeOnly } = googleTheme;
+const { colorSchemeIndex, colorSchemeType, strokeOnly } = tempBalanceTheme;
 
 ////////////////////////////////////
 ////  Color Scheme Definitions  ////
@@ -123,7 +129,14 @@ function colorScheme(index, type) {
         i => ["#4285F4", "#DB4437", "#F4B400", "#0F9D58"][i % 4],
 
         // 6: Pastel tones 4-class qualitative
-        i => ['#FFB36A', '#BBF165', '#E05D9D', '#50A8B9'][i % 4]
+        i => ['#FFB36A', '#BBF165', '#E05D9D', '#50A8B9'][i % 4],
+
+        // Baxter //
+        // 0: Gray-Purple color scale
+        d3
+            .scaleLinear()
+            .range(["ghostwhite", "indigo"])
+            .interpolate(d3.interpolateRgb),
     ];
 
     if (index < 0 || index >= colorFuncs.length) {
@@ -157,6 +170,12 @@ function colorScheme(index, type) {
             }
             return nodeColorMemo[d.data.name];
         };
+    } else if ("adaptive".startsWith(type)) {
+        // All leaves are the same color
+        nodeColor = d => {
+            const depth_ratio = d.depth / (d.depth + d.height);
+            return color(depth_ratio);
+        }
     } else {
         throw new Error("invalid color scheme type");
     }
