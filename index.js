@@ -51,7 +51,7 @@ const brightTheme = {
 
 // Choi
 const minRadius = 10;
-const { colorSchemeIndex, colorSchemeType, strokeOnly } = pastelTheme;
+const { colorSchemeIndex, colorSchemeType, strokeOnly } = googleTheme;
 
 ////////////////////////////////////
 ////  Color Scheme Definitions  ////
@@ -187,8 +187,8 @@ const whichChild = (() => {
 
 const colorEq = (a, b) => d3.color(a).toString() == d3.color(b).toString();
 
-const width = $(window).width();
-const height = $(window).height();
+let width = $(window).width();
+let height = $(window).height();
 
 // Choi //
 // Show previews on hover
@@ -256,6 +256,7 @@ const chart = data => {
     const svg = d3
         .create("svg")
         .attr("viewBox", `-${width / 2} -${height / 2} ${width} ${height}`)
+        .attr("preserveAspectRatio", "xMidYMid meet")
         .style("display", "block")
         .style("margin", "0 -14px")
         .style("background", strokeOnly ? "white" : nodeColor(root))
@@ -357,7 +358,7 @@ const chart = data => {
 
     // Bostock //
     // Minor zoom modifications : Choi //
-    function zoom(d) {
+    function zoom(d, duration_ms = 750) {
         const focus0 = focus;
 
         focus = d;
@@ -366,7 +367,7 @@ const chart = data => {
 
         const transition = svg
             .transition()
-            .duration(d3.event.altKey ? 7500 : 750)
+            .duration(duration_ms)
             .tween("zoom", d => {
                 const i = d3.interpolateZoom(view, [focus.x, focus.y, k]);
                 return t => zoomTo(i(t));
@@ -385,6 +386,13 @@ const chart = data => {
                 if (d.parent !== focus) this.style.display = "none";
             });
     }
+
+    window.onresize = () => {
+        width = $(window).width();
+        height = $(window).height();
+        $("svg").attr("viewBox", `-${width / 2} -${height / 2} ${width} ${height}`);
+        zoom(focus, 0); // instant zoom
+    };
 
     zoomTo([root.x, root.y, focus.r * 2 * Math.max(1, width / height)]);
     return svg.node();
