@@ -1,10 +1,13 @@
 {
-  "name": "hw4",
+  "name": "hw5",
   "scripts": {
-    "serve": "./node_modules/serve/bin/serve.js"
+    "compile": "webpack index.js bundle.js",
+    "serve": "webpack-dev-server"
   },
-  "author": "Fred Choi",
+  "author": "Fred Choi; Audrey Baxter",
   "dependencies": {
-    "serve": "^11.3.0"
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.10.2"
   }
 }
