@@ -9,76 +9,72 @@
 ////  Themes  ////
 //////////////////
 
-const originalTheme = {
-    colorSchemeIndex: 0,
-    colorSchemeType: "s",
-    strokeOnly: false
-};
+const themes = {
+    "original": {
+        colorSchemeIndex: 0,
+        colorSchemeType: "s",
+        strokeOnly: false
+    },
 
-const tempBalanceTheme = {
-    colorSchemeIndex: 1,
-    colorSchemeType: "s",
-    strokeOnly: false
-};
+    "tempBalance": {
+        colorSchemeIndex: 1,
+        colorSchemeType: "s",
+        strokeOnly: false
+    },
 
-const greyTheme = {
-    colorSchemeIndex: 2,
-    colorSchemeType: "s",
-    strokeOnly: false
-};
+    "grey": {
+        colorSchemeIndex: 2,
+        colorSchemeType: "s",
+        strokeOnly: false
+    },
 
-const pastelTheme = {
-    colorSchemeIndex: 4,
-    colorSchemeType: "q",
-    strokeOnly: false
-};
+    "pastel": {
+        colorSchemeIndex: 4,
+        colorSchemeType: "q",
+        strokeOnly: false
+    },
 
-const googleTheme = {
-    colorSchemeIndex: 5,
-    colorSchemeType: "q",
-    strokeOnly: true
-};
+    "google": {
+        colorSchemeIndex: 5,
+        colorSchemeType: "q",
+        strokeOnly: true
+    },
 
-const brightTheme = {
-    colorSchemeIndex: 6,
-    colorSchemeType: "q",
-    strokeOnly: true
-};
+    "bright": {
+        colorSchemeIndex: 6,
+        colorSchemeType: "q",
+        strokeOnly: true
+    },
 
-const concordTheme = {
-    colorSchemeIndex: 7,
-    colorSchemeType: "a",
-    strokeOnly: false,
-};
+    "concord": {
+        colorSchemeIndex: 7,
+        colorSchemeType: "a",
+        strokeOnly: false,
+    },
 
-const pinkBlueTheme = {
-    colorSchemeIndex: 12,
-    colorSchemeType: "a",
-    strokeOnly: false,
-}
+    "black": {
+        colorSchemeIndex: 8,
+        colorSchemeType: "c",
+        strokeOnly: true,
+    },
 
-const blackTheme = {
-    colorSchemeIndex: 8,
-    colorSchemeType: "c",
-    strokeOnly: true,
-}
+    "spectral": {
+        colorSchemeIndex: 9,
+        colorSchemeType: "a",
+        strokeOnly: false,
+    },
 
-const spectralTheme = {
-    colorSchemeIndex: 9,
-    colorSchemeType: "a",
-    strokeOnly: false,
-}
+    "magma": {
+        colorSchemeIndex: 10,
+        colorSchemeType: "a",
+        strokeOnly: false,
+    },
 
-const magmaTheme = {
-    colorSchemeIndex: 10,
-    colorSchemeType: "a",
-    strokeOnly: false,
-}
-
-const heatmapTheme = {
-    colorSchemeIndex: 11,
-    colorSchemeType: "s",
-    strokeOnly: false,
+    "heatmap": {
+        colorSchemeIndex: 11,
+        colorSchemeType: "s",
+        strokeOnly: false,
+    }
 }
 
 //////////////////////////////////////////
@@ -87,7 +83,7 @@ const heatmapTheme = {
 
 // Choi
 const minRadius = 10;
-const { colorSchemeIndex, colorSchemeType, strokeOnly } = concordTheme;
+let { colorSchemeIndex, colorSchemeType, strokeOnly } = themes["concord"];
 
 ////////////////////////////////////
 ////  Color Scheme Definitions  ////
@@ -212,7 +208,7 @@ function colorScheme(index, type) {
 
                 for(let j = 0; j < 3; j++)  {
                   if (whichChild(d) > 0 &&
-                    colorEq(color(i), nodeColor(d.parent.children[whichChild(d) - 1]))) 
+                    colorEq(color(i), nodeColor(d.parent.children[whichChild(d) - 1])))
                     i++; // dont repeat colors twice in a row
 
                   if(colorEq(color(i), nodeColor(d.parent))) i++; // make sure color is not same as parent
@@ -237,11 +233,10 @@ function colorScheme(index, type) {
     return { color, nodeColor };
 }
 
-const { color, nodeColor } = colorScheme(colorSchemeIndex, colorSchemeType);
+let { color, nodeColor } = colorScheme(colorSchemeIndex, colorSchemeType);
 
 // adjust text color based on background luminance
-const textColor = d => (luminance(nodeColor(d)) > 70 ? "black" : "white");
-
+let textColor = d => (luminance(nodeColor(d)) > 70 ? "black" : "white");
 //////////////////////////////
 ////  Visualization Code  ////
 //////////////////////////////
@@ -473,18 +468,39 @@ const chart = data => {
 
 // Choi //
 // loading data
+let kmeans, affinity;
+let which_vis = "kmeans";
+
 loadAffinityProp = async () => {
-    const response = await fetch("output/affinity-prop.json");
-    const data = await response.json();
+    if (!affinity) {
+        const response = await fetch("output/affinity-prop.json");
+        affinity = await response.json();
+    }
     $("svg").remove();
-    $("body").prepend(chart(data));
+    $("body").prepend(chart(affinity));
+    which_vis = "affinity";
 };
 
 loadKMeans = async () => {
-    const response = await fetch("output/kmeans.json");
-    const data = await response.json();
+    if (!kmeans) {
+        const response = await fetch("output/kmeans.json");
+        kmeans = await response.json();
+    }
     $("svg").remove();
-    $("body").prepend(chart(data));
+    $("body").prepend(chart(kmeans));
+    which_vis = "kmeans";
 };
+
+$("#controls").change(() => {
+    const active = themes[$("#theme").find("option:selected").val()];
+    ({ colorSchemeIndex, colorSchemeType, strokeOnly } = active);
+
+    ({ color, nodeColor } = colorScheme(colorSchemeIndex, colorSchemeType));
+
+    if (which_vis == "kmeans")
+        loadKMeans();
+    else
+        loadAffinityProp();
+});
 
 document.onload = loadKMeans();
