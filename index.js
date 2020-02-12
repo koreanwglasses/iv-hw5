@@ -321,6 +321,8 @@ const chart = data => {
     let focus = root;
     let view;
 
+    $("h1").css("color", strokeOnly ? "black" : textColor(root));
+
     const svg = d3
         .create("svg")
         .attr("viewBox", `-${width / 2} -${height / 2} ${width} ${height}`)
@@ -494,7 +496,6 @@ loadKMeans = async () => {
 $("#controls").change(() => {
     const active = themes[$("#theme").find("option:selected").val()];
     ({ colorSchemeIndex, colorSchemeType, strokeOnly } = active);
-
     ({ color, nodeColor } = colorScheme(colorSchemeIndex, colorSchemeType));
 
     if (which_vis == "kmeans")
