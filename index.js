@@ -51,7 +51,7 @@ const brightTheme = {
 
 // Choi
 const minRadius = 10;
-const { colorSchemeIndex, colorSchemeType, strokeOnly } = tempBalanceTheme;
+const { colorSchemeIndex, colorSchemeType, strokeOnly } = pastelTheme;
 
 ////////////////////////////////////
 ////  Color Scheme Definitions  ////
@@ -145,13 +145,13 @@ function colorScheme(index, type) {
             if (!(d.data.name in nodeColorMemo)) {
                 let i = whichChild(d);
 
-                if (color(i) == nodeColor(d.parent)) i++; // make sure color is not same as parent
-                if (
-                    whichChild(d) > 0 &&
-                    color(i) == nodeColor(d.parent.children[whichChild(d) - 1])
-                )
+                for(let j = 0; j < 3; j++)  {
+                  if (whichChild(d) > 0 &&
+                    colorEq(color(i), nodeColor(d.parent.children[whichChild(d) - 1]))) 
                     i++; // dont repeat colors twice in a row
-                if (color(i) == nodeColor(d.parent)) i++; // make sure color is not same as parent
+
+                  if(colorEq(color(i), nodeColor(d.parent))) i++; // make sure color is not same as parent
+                }
 
                 nodeColorMemo[d.data.name] = color(i);
             }
@@ -184,6 +184,8 @@ const whichChild = (() => {
             ? whichChildMemo[d.data.name]
             : (whichChildMemo[d.data.name] = d.parent.children.indexOf(d));
 })();
+
+const colorEq = (a, b) => d3.color(a).toString() == d3.color(b).toString();
 
 const width = $(window).width();
 const height = $(window).height();
