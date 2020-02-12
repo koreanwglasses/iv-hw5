@@ -42,12 +42,36 @@ const googleTheme = {
 const brightTheme = {
     colorSchemeIndex: 6,
     colorSchemeType: "q",
-    strokeOnly: false
+    strokeOnly: true
 };
 
 const concordTheme = {
     colorSchemeIndex: 7,
     colorSchemeType: "a",
+    strokeOnly: false,
+}
+
+const blackTheme = {
+    colorSchemeIndex: 8,
+    colorSchemeType: "c",
+    strokeOnly: true,
+}
+
+const spectralTheme = {
+    colorSchemeIndex: 9,
+    colorSchemeType: "a",
+    strokeOnly: false,
+}
+
+const magmaTheme = {
+    colorSchemeIndex: 10,
+    colorSchemeType: "a",
+    strokeOnly: false,
+}
+
+const heatmapTheme = {
+    colorSchemeIndex: 11,
+    colorSchemeType: "s",
     strokeOnly: false,
 }
 
@@ -57,7 +81,7 @@ const concordTheme = {
 
 // Choi
 const minRadius = 10;
-const { colorSchemeIndex, colorSchemeType, strokeOnly } = tempBalanceTheme;
+const { colorSchemeIndex, colorSchemeType, strokeOnly } = concordTheme;
 
 ////////////////////////////////////
 ////  Color Scheme Definitions  ////
@@ -99,7 +123,7 @@ function colorScheme(index, type) {
             .range(["white", "black"])
             .interpolate(d3.interpolateHcl),
 
-        // 3: 8-class qualitative
+        // 3: 8-class qualitative (NEVER USED)
         i =>
             [
                 "#66c2a5",
@@ -132,11 +156,25 @@ function colorScheme(index, type) {
         i => ['#FFB36A', '#BBF165', '#E05D9D', '#50A8B9'][i % 4],
 
         // Baxter //
-        // 0: Gray-Purple color scale
+        // 7: Gray-Purple color scale
         d3
             .scaleLinear()
             .range(["ghostwhite", "indigo"])
             .interpolate(d3.interpolateRgb),
+
+        // 8: Black outlines only
+        _ => "black",
+
+        // 9: spectral
+        d3.scaleDiverging(d3.interpolateSpectral),
+
+        // 10: magma
+        d3.scaleDiverging(d3.interpolateMagma),
+
+        //11: heatmap
+        d3
+            .scaleSequential(d3.interpolateRainbow)
+            .domain([0, 1.1]),
     ];
 
     if (index < 0 || index >= colorFuncs.length) {
@@ -176,6 +214,8 @@ function colorScheme(index, type) {
             const depth_ratio = d.depth / (d.depth + d.height);
             return color(depth_ratio);
         }
+    } else if ("constant".startsWith(type)) {
+        nodeColor = color;
     } else {
         throw new Error("invalid color scheme type");
     }
