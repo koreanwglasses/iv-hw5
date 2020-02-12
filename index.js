@@ -49,6 +49,12 @@ const concordTheme = {
     colorSchemeIndex: 7,
     colorSchemeType: "a",
     strokeOnly: false,
+};
+
+const pinkBlueTheme = {
+    colorSchemeIndex: 8,
+    colorSchemeType: "a",
+    strokeOnly: false,
 }
 
 //////////////////////////////////////////
@@ -57,7 +63,7 @@ const concordTheme = {
 
 // Choi
 const minRadius = 10;
-const { colorSchemeIndex, colorSchemeType, strokeOnly } = tempBalanceTheme;
+const { colorSchemeIndex, colorSchemeType, strokeOnly } = pinkBlueTheme;
 
 ////////////////////////////////////
 ////  Color Scheme Definitions  ////
@@ -132,11 +138,19 @@ function colorScheme(index, type) {
         i => ['#FFB36A', '#BBF165', '#E05D9D', '#50A8B9'][i % 4],
 
         // Baxter //
-        // 0: Gray-Purple color scale
+        // 7: Gray-Purple color scale
         d3
             .scaleLinear()
             .range(["ghostwhite", "indigo"])
             .interpolate(d3.interpolateRgb),
+
+        // Choi //
+        // 8: Pink-Blue color scale
+        d3
+            .scaleLinear()
+            .domain([-0.01,0.04,0.4,1])
+            .range(["White", "#ffc8d8", "White", "#55cdfc"])
+            .interpolate(d3.interpolateRgb)
     ];
 
     if (index < 0 || index >= colorFuncs.length) {
