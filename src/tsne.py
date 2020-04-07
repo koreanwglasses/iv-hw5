@@ -1,3 +1,4 @@
+import os
 import cv2
 from glob import glob
 import numpy as np
@@ -9,13 +10,14 @@ import matplotlib.pyplot as plt
 
 # Used to store the clusters and output them JSON
 class ClusterNode:
-  def __init__(self, name=None, preview=None, size=None, x=None, y=None):
+  def __init__(self, name=None, preview=None, size=None, x=None, y=None, radius=None):
     self.name = name
     self.preview = preview
     self.children = []
     self.size = size
     self.x = x
     self.y = y
+    self.radius = radius
 
   def json(self, level=0):
     indent = ' '*(2*level)
@@ -36,6 +38,9 @@ class ClusterNode:
     if self.y is not None:
       result += indent + ' "y" : ' + str(self.y) + ',\n'
 
+    if self.radius is not None:
+      result += indent + ' "radius" : ' + str(self.radius) + ',\n'
+
     if self.children != []:
       result += indent + '  "children" : [\n'
 
@@ -49,6 +54,49 @@ class ClusterNode:
     
     return result
 
+cluster_id = 0
+def hierarchical_k_means(X, names, locations, basis, k=7, split_threshold=10, max_depth=10):
+  '''
+  Compute the hierarchical k means of a (transformed) data set.
+
+  X - input data
+  names - labels (to keep track of whats in which cluster)
+  locations - locations of data poitns in a particular embedding
+  k - branching factor. How many clusters per level.
+  split_threshold and max_depth - stopping point for recursion
+  '''
+  cluster = ClusterNode()
+  cluster.size = X.shape[0]
+  cluster.x, cluster.y = np.mean(locations, axis=0)
+  cluster.radius = np.max(np.linalg.norm(locations - [[cluster.x, cluster.y]], axis=1))
+
+  if X.shape[0] < split_threshold or max_depth <= 0:
+    cluster.children = [ClusterNode(os.path.basename(name) , name , 1) for name in names]
+    return cluster
+
+  kmeans = KMeans(n_clusters=k).fit(X)
+  labels = kmeans.labels_
+  centroids = kmeans.cluster_centers_
+
+  cluster.children = []
+  for i in range(k):
+    cluster_X = X[labels==i]
+    cluster_names = names[labels==i]
+    cluster_locations = locations[labels==i]
+    subcluster = hierarchical_k_means(cluster_X, cluster_names, cluster_locations, basis, k=k, split_threshold=split_threshold, max_depth=max_depth-1)
+
+    # output the centroids to a separate file
+    global cluster_id
+    centroid_outname = './output/centroids/kmeans-centroid-' + str(cluster_id) + '.JPEG'
+    cluster_id += 1
+    subcluster.name = f'cluster {cluster_id}'
+    subcluster.preview = centroid_outname
+    cv2.imwrite(centroid_outname, (basis.T@centroids[i]).reshape(*image_shape))
+
+    cluster.children.append(subcluster)
+
+  return cluster
+
 # Prepare input data
 print("Initializing images...")
 filenames = glob('./images/*.JPEG')
@@ -58,7 +106,8 @@ X = np.stack(images).reshape(len(images), -1)
 
 # Reduce dimensionality
 print("Performing PCA...")
-X_reduced = PCA(n_components=10).fit_transform(X)
+pca = PCA(n_components=20)
+X_reduced = pca.fit_transform(X)
 
 print("Trying TSNE...")
 X_embedded = TSNE(n_components=2).fit_transform(X_reduced)
@@ -66,9 +115,20 @@ X_embedded = TSNE(n_components=2).fit_transform(X_reduced)
 # plt.scatter(X_embedded[:, 0], X_embedded[:, 1])
 # plt.show()
 
-print("Comparing K-means...")
+# print("Comparing K-means...")
 # k-means on unreduced input points
-kmeans = KMeans(n_clusters=7).fit(X)
+# kmeans = KMeans(n_clusters=7).fit(X)
 
-plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=kmeans.labels_, cmap="Accent")
-plt.show()
+# plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=kmeans.labels_, cmap="Accent")
+# plt.show()
+
+print("Computing K-means...")
+
+hkmeans = hierarchical_k_means(X_reduced, np.array(filenames), X_embedded, pca.components_)
+
+f = open('./output/kmeans.json', 'w')
+f.write(hkmeans.json())
+f.write('\n')
+f.close()
+
+print("Done!")
