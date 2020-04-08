@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Circle Packing</title>
+<link
+  href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: "Open Sans", sans-serif;
+  }
+
+  #controls {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+  }
+
+  #preview {
+    position: absolute;
+    padding: 10px 15px;
+    border-radius: 0 20px 20px 20px;
+    border-style: solid;
+    border-color: white;
+    box-sizing: border-box;
+    pointer-events: none;
+    color: white;
+  }
+
+  .flipped-up {
+    border-radius: 20px 20px 20px 0 !important;
+  }
+
+  .flipped-left {
+    border-radius: 20px 0 20px 20px !important;
+  }
+
+  .flipped-up-left {
+    border-radius: 20px 20px 0 20px !important;
+  }
+</style>
+
+<body>
+  <div id="preview" hidden>
+    Preview: <span id="preview-name"></span><br />
+    <img id="preview-img" src="" width="160" height="120" />
+  </div>
+
+  <script
+    src="https://code.jquery.com/jquery-3.4.1.min.js"
+    integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+    crossorigin="anonymous"
+  ></script>
+  <script src="//d3js.org/d3.v5.min.js"></script>
+  <script src="tsne-bundle.js"></script>
+</body>

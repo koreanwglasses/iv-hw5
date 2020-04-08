@@ -390,20 +390,20 @@ const chart = data => {
 
         label.attr(
             "transform",
-            d => `translate(${(d.x - v[0]) * k},${(d.y - v[1]) * k})`
+            d => `translate(${(d.data.x - v[0]) * k},${(d.data.y - v[1]) * k})`
         );
 
         const isVisible = d =>
-            (d.x - v[0] + d.r) * k > -width / 2 &&
-            (d.x - v[0] - d.r) * k < width / 2 &&
-            (d.y - v[1] + d.r) * k > -height / 2 &&
-            (d.y - v[1] - d.r) * k < height / 2 &&
+            (d.data.x - v[0] + d.r) * k > -width / 2 &&
+            (d.data.x - v[0] - d.r) * k < width / 2 &&
+            (d.data.y - v[1] + d.r) * k > -height / 2 &&
+            (d.data.y - v[1] - d.r) * k < height / 2 &&
             d.r * k >= minRadius / 2;
 
         const visibleNodes = node.filter(isVisible);
         visibleNodes.attr(
             "transform",
-            d => `translate(${(d.x - v[0]) * k},${(d.y - v[1]) * k})`
+            d => `translate(${(d.data.x - v[0]) * k},${(d.data.y - v[1]) * k})`
         );
         visibleNodes.attr("r", d => d.r * k);
 
@@ -439,7 +439,7 @@ const chart = data => {
             .transition()
             .duration(duration_ms)
             .tween("zoom", d => {
-                const i = d3.interpolateZoom(view, [focus.x, focus.y, k]);
+                const i = d3.interpolateZoom(view, [focus.data.x, focus.data.y, k]);
                 return t => zoomTo(i(t));
             });
 
@@ -464,7 +464,7 @@ const chart = data => {
         zoom(focus, 0); // instant zoom
     };
 
-    zoomTo([root.x, root.y, focus.r * 2 * Math.max(1, width / height)]);
+    zoomTo([root.x, root.data.y, focus.r * 2 * Math.max(1, width / height)]);
     return svg.node();
 };
 
