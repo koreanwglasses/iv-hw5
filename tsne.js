@@ -55,16 +55,6 @@ function whichBranch(branch, target) {
   return whichChild(lineage[branchIndex - 1])
 }
 
-// function polygon(path) {
-//   return 'M' + path.map(([x, y]) => x + ',' + y).join("L") + 'Z'
-// }
-
-// function convexHull(points) {
-//   if(points.length < 3) return polygon(points)
-
-//   return polygon(d3.polygonHull(points))
-// }
-
 /**
  * @param {[number, number][]} points 
  */
@@ -104,8 +94,13 @@ const colorCycle = ["#66c2a5",
                     "#a6d854",
                     "#ffd92f",
                     "#e5c494",
-                    "#b3b3b3",
-                    "#808080"]
+                    "#b3b3b3"]
+
+function colorIndex(node) {
+  let i = whichChild(node)
+  i += (node.parent && colorIndex(node.parent) == i)
+  return i
+}
 
 class Chart {
 
@@ -119,6 +114,9 @@ class Chart {
 
     this.clusterCenter = memoize(clusterCenter, node=>node.value)
     this.clusterRadius = memoize(clusterRadius, node=>node.value)
+    this.colorIndex = memoize(colorIndex, node=>node.value)
+    this.handleNodeClick = this.handleNodeClick.bind(this)
+    this.leafColor = this.leafColor.bind(this)
 
     this.root = d3.hierarchy(props.data)
                   .sum(node => node.size)
@@ -128,7 +126,9 @@ class Chart {
     this.svg = d3.create("svg")
           .attr("viewBox", [0, 0, this.props.width, this.props.height])
           .style("font", "10px sans-serif")
-          .attr("text-anchor", "middle");
+          .attr("text-anchor", "middle")
+          .style("cursor", "pointer")
+          .on('click', () => this.focus(this.root))
     
     this.clusters = this.svg
       .append("g")
@@ -136,19 +136,48 @@ class Chart {
       .data(this.root.descendants().filter(node=>node.children))
       .join("circle")
       .attr('fill-opacity', 0)
-      .attr("fill", node => colorCycle[whichChild(node) % colorCycle.length])
+      .attr("fill", node => colorCycle[this.colorIndex(node) % colorCycle.length])
+      .on('click', this.handleNodeClick)
 
     this.leaves = this.svg
         .append("g")
         .selectAll("circle")
         .data(this.root.leaves())
         .join("circle")
+        .on('click', this.handleNodeClick)
 
     this.focus(this.root)
+
+  }
+
+  handleNodeClick(d) {
+    const branchIndex = whichBranch(this.currentFocus, d)
+    if(branchIndex == -1 && this.currentFocus.parent) {
+      this.focus(this.currentFocus.parent)
+      return;
+    }
+    this.focus(this.currentFocus.children[branchIndex])
+    d3.event.stopPropagation()
   }
 
   node() {
     return this.svg.node()
+  }
+
+  leafColor(node) {
+    const isDescendant = node.ancestors().indexOf(this.currentFocus) != -1
+
+    const bi = whichBranch(this.currentFocus, node)
+    if(!isDescendant) {return '#808080'}
+
+    // if(isDescendant && bi == -1)
+    // {
+    //   const ci = this.colorIndex(this.currentFocus)
+    //   return colorCycle[ci % colorCycle.length]
+    // }
+
+    const ci = this.colorIndex(this.currentFocus.children[bi])
+    return colorCycle[ci % colorCycle.length]
   }
 
   setZoom([x, y, scale]) {
@@ -158,6 +187,7 @@ class Chart {
         node => `translate(${(node.data.x - x) * scale},${(node.data.y - y) * scale})`
       )
       .attr("r", 5)
+      .attr("fill-opacity", node => whichBranch(this.currentFocus, node) == -1 ? 0.2: 1)
 
     this.clusters
       .attr(
@@ -176,9 +206,10 @@ class Chart {
     const scale = this.props.width/width
     this.setZoom([x, y, scale])
 
-    this.leaves.attr("fill", node => colorCycle[(whichBranch(this.currentFocus, node) + colorCycle.length) % colorCycle.length])
+    this.leaves.attr("fill", this.leafColor)
 
     this.clusters.attr("fill-opacity", node => this.props.clusterOpacity * (this.currentFocus.children.indexOf(node) != -1))
+    this.clusters.attr("visibility", node => this.currentFocus.children.indexOf(node) == -1 ? "hidden" : "visible")
   }
 }
 
