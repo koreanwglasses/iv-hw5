@@ -10,14 +10,14 @@ import matplotlib.pyplot as plt
 
 # Used to store the clusters and output them JSON
 class ClusterNode:
-  def __init__(self, name=None, preview=None, size=None, x=None, y=None, radius=None):
+  def __init__(self, name=None, preview=None, size=None, x=None, y=None, bounds=None):
     self.name = name
     self.preview = preview
     self.children = []
     self.size = size
     self.x = x
     self.y = y
-    self.radius = radius
+    self.bounds = bounds 
 
   def json(self, level=0):
     indent = ' '*(2*level)
@@ -38,8 +38,8 @@ class ClusterNode:
     if self.y is not None:
       result += indent + ' "y" : ' + str(self.y) + ',\n'
 
-    if self.radius is not None:
-      result += indent + ' "radius" : ' + str(self.radius) + ',\n'
+    if self.bounds is not None:
+      result += indent + ' "bounds" : ' + str(self.bounds) + ',\n'  
 
     if self.children != []:
       result += indent + '  "children" : [\n'
@@ -67,9 +67,7 @@ def hierarchical_k_means(X, images, names, locations, k=7, split_threshold=10, m
   '''
   cluster = ClusterNode()
   cluster.size = X.shape[0]
-  cluster.x, cluster.y = np.mean(locations, axis=0)
-  distances = np.linalg.norm(locations - [[cluster.x, cluster.y]], axis=1)
-  cluster.radius = min(4 * np.std(distances), np.max(distances))
+  cluster.bounds = [np.min(locations[:, 0]), np.min(locations[:, 1]), np.ptp(locations[:, 0]), np.ptp(locations[:, 1])]
 
   # output the centroids to a separate file
   global cluster_id
@@ -81,7 +79,7 @@ def hierarchical_k_means(X, images, names, locations, k=7, split_threshold=10, m
 
   # Base Case
   if X.shape[0] < split_threshold or max_depth <= 0:
-    cluster.children = [ClusterNode(os.path.basename(name), name, 1, x=location[0], y=location[1], radius=.1) for name, location in zip(names, locations)]
+    cluster.children = [ClusterNode(os.path.basename(name), name, 1, x=location[0], y=location[1]) for name, location in zip(names, locations)]
     return cluster
 
   # Cluster and Recurse
@@ -126,7 +124,7 @@ X_embedded = TSNE(n_components=2).fit_transform(X_reduced)
 
 print("Computing K-means...")
 
-hkmeans = hierarchical_k_means(X_embedded, np.stack(images), np.array(filenames), X_embedded)
+hkmeans = hierarchical_k_means(X_reduced, np.stack(images), np.array(filenames), X_embedded)
 
 f = open('./output/kmeans.json', 'w')
 f.write(hkmeans.json())
