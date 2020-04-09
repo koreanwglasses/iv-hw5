@@ -81,7 +81,7 @@ def hierarchical_k_means(X, images, names, locations, k=7, split_threshold=10, m
 
   # Base Case
   if X.shape[0] < split_threshold or max_depth <= 0:
-    cluster.children = [ClusterNode(os.path.basename(name), name, 1, x=location[0], y=location[1], radius=1) for name, location in zip(names, locations)]
+    cluster.children = [ClusterNode(os.path.basename(name), name, 1, x=location[0], y=location[1], radius=.1) for name, location in zip(names, locations)]
     return cluster
 
   # Cluster and Recurse

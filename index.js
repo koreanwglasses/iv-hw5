@@ -422,7 +422,7 @@ const chart = data => {
             visibleNodes.attr("fill-opacity", 0);
         } else {
             visibleNodes.attr("fill-opacity", d =>
-                clamp((2 * d.data.radius * k) / minRadius - 1, 0, 0.1)
+                clamp((2 * d.data.radius * k) / minRadius - 1, 0, 0.5)
             );
         }
     }
@@ -466,7 +466,7 @@ const chart = data => {
     };
 
     // zoomTo([root.data.x, root.data.y, focus.data.radius * 2 * Math.max(1, width / height)]);
-    zoomTo([0, 0, 200 * 2 * Math.max(1, width / height)]);
+    zoomTo([0, 0, 100 * 2 * Math.max(1, width / height)]);
     return svg.node();
 };
 
