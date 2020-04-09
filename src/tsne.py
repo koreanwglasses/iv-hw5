@@ -68,7 +68,8 @@ def hierarchical_k_means(X, images, names, locations, k=7, split_threshold=10, m
   cluster = ClusterNode()
   cluster.size = X.shape[0]
   cluster.x, cluster.y = np.mean(locations, axis=0)
-  cluster.radius = np.max(np.linalg.norm(locations - [[cluster.x, cluster.y]], axis=1))
+  distances = np.linalg.norm(locations - [[cluster.x, cluster.y]], axis=1)
+  cluster.radius = min(4 * np.std(distances), np.max(distances))
 
   # output the centroids to a separate file
   global cluster_id
@@ -80,7 +81,7 @@ def hierarchical_k_means(X, images, names, locations, k=7, split_threshold=10, m
 
   # Base Case
   if X.shape[0] < split_threshold or max_depth <= 0:
-    cluster.children = [ClusterNode(os.path.basename(name) , name , 1) for name in names]
+    cluster.children = [ClusterNode(os.path.basename(name), name, 1, x=location[0], y=location[1], radius=1) for name, location in zip(names, locations)]
     return cluster
 
   # Cluster and Recurse
@@ -125,7 +126,7 @@ X_embedded = TSNE(n_components=2).fit_transform(X_reduced)
 
 print("Computing K-means...")
 
-hkmeans = hierarchical_k_means(X_reduced, np.stack(images), np.array(filenames), X_embedded)
+hkmeans = hierarchical_k_means(X_embedded, np.stack(images), np.array(filenames), X_embedded)
 
 f = open('./output/kmeans.json', 'w')
 f.write(hkmeans.json())
