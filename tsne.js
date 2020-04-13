@@ -30,8 +30,8 @@ function memoize(f, hash) {
  * @param {[number, number, number, number]} contentBounds
  * @param {[number, number]} frameSize
  */
-function fit(
-  [contentX, contentY, contentWidth, contentHeight],
+function fitRect(
+  [contentLeft, contentTop, contentWidth, contentHeight],
   [frameWidth, frameHeight]
 ) {
   const scale = Math.max(
@@ -41,10 +41,18 @@ function fit(
 
   const width = frameWidth * scale;
   const height = frameHeight * scale;
-  const x = contentX - (width - contentWidth) / 2;
-  const y = contentY - (height - contentHeight) / 2;
+  const x = contentLeft - (width - contentWidth) / 2;
+  const y = contentTop - (height - contentHeight) / 2;
 
   return [x, y, width, height];
+}
+
+/**
+ * @param {Rectangle} rect
+ * @param {number} frameWidth
+ */
+function rectToView([left, top, width, height], frameWidth) {
+  return [left + width / 2, top + height / 2, frameWidth / width];
 }
 
 /**
@@ -108,29 +116,14 @@ function stdDist(points) {
   return Math.sqrt(meanDist2 - Math.pow(meanDist, 2));
 }
 
-function clusterCenter(node) {
-  const points = node.leaves().map((leaf) => [leaf.data.x, leaf.data.y]);
-  return centroid(points);
-}
-
-function clusterRadius(node) {
-  const points = node.leaves().map((leaf) => [leaf.data.x, leaf.data.y]);
-  return stdDist(points);
-}
-
-const colorCycle = [
-  "#66c2a5",
-  "#fc8d62",
-  "#8da0cb",
-  "#e78ac3",
-  "#a6d854",
-  "#ffd92f",
-  "#e5c494",
-];
-
+/**
+ * Colors this node with a non-negative integer such that colorIndex(node) !=
+ * colorIndex(node.parent) and colorIndex(node) != colorIndex(sibling)
+ * @param {d3.HierarchyNode<any>} node
+ */
 function colorIndex(node) {
   let i = whichChild(node);
-  i += node.parent && colorIndex(node.parent) == i;
+  i += node.parent && colorIndex(node.parent) <= i;
   return i;
 }
 
@@ -150,6 +143,32 @@ function colorIndex(node) {
  */
 
 /**
+ * @param {Node} node
+ */
+function clusterCenter(node) {
+  const points = node.leaves().map((leaf) => [leaf.data.x, leaf.data.y]);
+  return centroid(points);
+}
+
+/**
+ * @param {Node} node
+ */
+function clusterRadius(node) {
+  const points = node.leaves().map((leaf) => [leaf.data.x, leaf.data.y]);
+  return stdDist(points);
+}
+
+const colorCycle = [
+  "#66c2a5",
+  "#fc8d62",
+  "#8da0cb",
+  "#e78ac3",
+  "#a6d854",
+  "#ffd92f",
+  "#e5c494",
+];
+
+/**
  * @typedef ChartProps
  * @property {ClusterData} data
  * @property {number} width
@@ -166,6 +185,7 @@ class Chart {
   constructor(props) {
     this.props = { clusterOpacity: 0.5, clusterScale: 1.5, ...props };
     this.currentFocus = null;
+    this.view = [0, 0, 0];
 
     this.clusterCenter = memoize(clusterCenter, (node) => node.value);
     this.clusterRadius = memoize(clusterRadius, (node) => node.value);
@@ -180,7 +200,12 @@ class Chart {
 
     this.svg = d3
       .create("svg")
-      .attr("viewBox", [0, 0, this.props.width, this.props.height])
+      .attr("viewBox", [
+        -this.props.width / 2,
+        -this.props.height / 2,
+        this.props.width,
+        this.props.height,
+      ])
       .style("font", "10px sans-serif")
       .attr("text-anchor", "middle")
       .style("cursor", "pointer")
@@ -205,7 +230,7 @@ class Chart {
       .join("circle")
       .on("click", this.handleNodeClick);
 
-    this.focus(this.root);
+    this.focus(this.root, false);
   }
 
   /**
@@ -239,7 +264,14 @@ class Chart {
       : "#808080";
   }
 
-  setZoom([x, y, scale]) {
+  /**
+   * @param {[number, number, number]} view [x, y, scale]
+   */
+  setZoom(view) {
+    this.view = view;
+    const [x, y, scale] = view;
+    console.log(x, y, scale);
+
     this.leaves
       .attr(
         "transform",
@@ -259,30 +291,75 @@ class Chart {
       );
   }
 
-  focus(node) {
+  /**
+   * @param {Node} node
+   */
+  focus(node, animate = true) {
     this.currentFocus = node;
-    const [x, y, width, height] = fit(scaleRectangle(node.data.bounds, 1.1), [
-      this.props.width,
-      this.props.height,
-    ]);
-    const scale = this.props.width / width;
-    this.setZoom([x, y, scale]);
+    const [x, y, scale] = rectToView(
+      fitRect(scaleRectangle(node.data.bounds, 1.1), [
+        this.props.width,
+        this.props.height,
+      ]),
+      this.props.width
+    );
+
+    const transition = this.svg.transition().duration(750);
+    if (animate) {
+      transition.tween("zoom", () => {
+        const f = ([x, y, scale]) => [x, y, 2000 / scale];
+
+        const i = d3.interpolateZoom(f(this.view), f([x, y, scale]));
+        return (t) => this.setZoom(f(i(t)));
+      });
+    } else {
+      this.setZoom([x, y, scale]);
+    }
 
     this.leaves
-      .attr("fill", this.leafColor)
-      .attr("fill-opacity", (node) =>
+      .transition(transition)
+      .style("fill", this.leafColor)
+      .style("fill-opacity", (node) =>
         whichBranch(this.currentFocus, node) == -1 ? 0.2 : 1
       );
 
-    this.clusters.attr(
-      "fill-opacity",
-      (node) =>
-        this.props.clusterOpacity *
-        (this.currentFocus.children.indexOf(node) != -1)
-    );
-    this.clusters.attr("visibility", (node) =>
-      this.currentFocus.children.indexOf(node) == -1 ? "hidden" : "visible"
-    );
+    /**
+     * Helper function for showing/hiding relevant clusters
+     * @param {Node} node
+     * @param {Element} el
+     */
+    const onStart = (node, el) => {
+      if (
+        el.style.visibility != "visible" &&
+        this.currentFocus.children.indexOf(node) != -1
+      ) {
+        el.style.visibility = "visible";
+      }
+    };
+
+    /**
+     * @param {Node} node
+     * @param {Element} el
+     */
+    const onEnd = (node, el) => {
+      el.style.visibility =
+        this.currentFocus.children.indexOf(node) == -1 ? "hidden" : "visible";
+    };
+
+    this.clusters
+      .transition(transition)
+      .style(
+        "fill-opacity",
+        (node) =>
+          this.props.clusterOpacity *
+          (this.currentFocus.children.indexOf(node) != -1)
+      )
+      .on("start", function (node) {
+        onStart(node, this);
+      })
+      .on("end", function (node) {
+        onEnd(node, this);
+      });
   }
 }
 

@@ -4,10 +4,10 @@ const path = require("path");
 module.exports = {
     context: __dirname,
     devtool: "inline-sourcemap",
-    entry: path.resolve(__dirname, "tsne.js"),
+    entry: path.resolve(__dirname, "index.js"),
     output: {
       path: __dirname,
-      filename: "tsne-bundle.js"
+      filename: "bundle.js"
     },
     watch: true,
     plugins: [
